@@ -2,7 +2,7 @@
   "name": "address-api",
   "version": "0.0.1",
   "dependencies": {
+    "node-fetch": "^3.3.2"
   },
-  "scripts": {},
-  "devDependencies": {}
+  "scripts": {}
 }
