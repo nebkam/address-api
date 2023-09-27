@@ -14,52 +14,52 @@ const LOCAL_ZIP = './streets.zip';
 const ZIP_ENTRY = 'tmp/data/ready/adresni/ulica-sifarnik.csv';
 const CSV_FILE = './ulica-sifarnik.csv';
 
-const response = await fetch(REMOTE_ZIP);
+fetch(REMOTE_ZIP).then(response => {
+	if (!response.ok) throw new Error(`unexpected response ${response.statusText}`);
 
-if (!response.ok) throw new Error(`unexpected response ${response.statusText}`);
+	streamPipeline(response.body, createWriteStream(LOCAL_ZIP)).then(() => {
+		const zip = new admZip(LOCAL_ZIP);
+		zip.extractEntryTo(ZIP_ENTRY, "./", false, true);
 
-await streamPipeline(response.body, createWriteStream(LOCAL_ZIP));
+		let alphabeticalIndex = new Map();
+		fs.createReadStream(CSV_FILE).pipe(parse({
+			delimiter: ',',
+			columns: true
+		}, function (err, streets) {
+			if (err) {
+				console.warn(err);
+			} else {
+				streets.forEach(street => {
+					const terms = stemStreet(street);
+					terms.forEach(term => {
+						if (alphabeticalIndex.has(term)) {
+							let items = alphabeticalIndex.get(term);
+							items.push(street);
+							alphabeticalIndex.set(term, items);
+						} else {
+							alphabeticalIndex.set(term, [street]);
+						}
+					});
 
-const zip = new admZip(LOCAL_ZIP);
-zip.extractEntryTo(ZIP_ENTRY, "./", false, true);
+					//Remove (currently) redundant properties
+					delete street.streetid;
+					delete street.ulica_maticni_broj;
+					delete street.ulica_ime;
+					delete street.naselje_maticni_broj;
+					delete street.naselje_ime;
+					delete street.opstina_maticni_broj;
+					delete street.opstina_ime;
+					delete street.tip;
+					delete street.tip_lat;
+					delete street.created;
+					delete street.modificationdate;
+					delete street.retired;
+					delete street.primary_key
+				});
 
-let alphabeticalIndex = new Map();
-fs.createReadStream(CSV_FILE).pipe(parse({
-	delimiter: ',',
-	columns: true
-}, function (err, streets) {
-	if (err) {
-		console.warn(err);
-	} else {
-		streets.forEach(street => {
-			const terms = stemStreet(street);
-			terms.forEach(term => {
-				if (alphabeticalIndex.has(term)) {
-					let items = alphabeticalIndex.get(term);
-					items.push(street);
-					alphabeticalIndex.set(term, items);
-				} else {
-					alphabeticalIndex.set(term, [street]);
-				}
-			});
-
-			//Remove (currently) redundant properties
-			delete street.streetid;
-			delete street.ulica_maticni_broj;
-			delete street.ulica_ime;
-			delete street.naselje_maticni_broj;
-			delete street.naselje_ime;
-			delete street.opstina_maticni_broj;
-			delete street.opstina_ime;
-			delete street.tip;
-			delete street.tip_lat;
-			delete street.created;
-			delete street.modificationdate;
-			delete street.retired;
-			delete street.primary_key
-		});
-		
-		console.log(`Alphabetical index built with ${alphabeticalIndex.size} items`);
-		console.log(alphabeticalIndex.get('zmaj'));
-	}
-}));
+				console.log(`Alphabetical index built with ${alphabeticalIndex.size} items`);
+				console.log(alphabeticalIndex.get('zmaj'));
+			}
+		}));
+	});
+});
