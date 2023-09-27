@@ -4,5 +4,6 @@
   "dependencies": {
     "node-fetch": "^3.3.2"
   },
-  "scripts": {}
+  "scripts": {},
+  "type": "module"
 }
