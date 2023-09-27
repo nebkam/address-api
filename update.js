@@ -22,8 +22,34 @@ await streamPipeline(response.body, createWriteStream(LOCAL_ZIP));
 const zip = new admZip(LOCAL_ZIP);
 zip.extractEntryTo(ZIP_ENTRY, "./", false, true);
 
-const parser = parse({delimiter: ',', columns: true}, function(err, data){
-	console.log(data);
+const parser = parse({
+	delimiter: ',', 
+	columns: true,
+	cast: function(value, context){
+		if (context.column === 'streetid') {
+			return parseInt(value);
+		}
+		if (context.column === 'created' && value) {
+			return new Date(value);
+		}
+		if (context.column === 'modificationdate' && value) {
+			return new Date(value);
+		}
+		if (context.column === 'retired' && value) {
+			return new Date(value);
+		}
+		if (context.column === 'primary_key') {
+			return parseInt(value);
+		}
+		
+		return value;
+	}
+}, function(err, data){
+	if (err) {
+		console.warn(err);
+	} else {
+		console.log(data);
+	}
 });
 
 fs.createReadStream(CSV_FILE).pipe(parser);
