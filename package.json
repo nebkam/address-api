@@ -5,6 +5,7 @@
     "node": "18.*"
   },
   "dependencies": {
+    "adm-zip": "^0.5.10",
     "node-fetch": "^3.3.2"
   },
   "scripts": {},
