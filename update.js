@@ -24,26 +24,7 @@ zip.extractEntryTo(ZIP_ENTRY, "./", false, true);
 
 const parser = parse({
 	delimiter: ',', 
-	columns: true,
-	cast: function(value, context){
-		if (context.column === 'streetid') {
-			return parseInt(value);
-		}
-		if (context.column === 'created' && value) {
-			return new Date(value);
-		}
-		if (context.column === 'modificationdate' && value) {
-			return new Date(value);
-		}
-		if (context.column === 'retired' && value) {
-			return new Date(value);
-		}
-		if (context.column === 'primary_key') {
-			return parseInt(value);
-		}
-		
-		return value;
-	}
+	columns: true
 }, function(err, data){
 	if (err) {
 		console.warn(err);
