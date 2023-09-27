@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
+    "csv-parse": "^5.5.0",
     "node-fetch": "^3.3.2"
   },
   "scripts": {},
