@@ -1,16 +1,8 @@
-import fs from 'fs';
-import {parse} from 'csv-parse';
 import {MongoClient, ServerApiVersion} from 'mongodb';
+import { parse } from 'csv-parse/sync';
+import {readFileSync} from "node:fs";
 
-const uri = process.env.MONGODB_DSN;
 const CSV_FILE = './ulica-sifarnik.csv';
-const mongoClient = new MongoClient(uri, {
-	serverApi: {
-		version: ServerApiVersion.v1,
-		strict: true,
-		deprecationErrors: true,
-	}
-});
 
 /**
  * @param {Object} row
@@ -31,7 +23,7 @@ const mongoClient = new MongoClient(uri, {
  * @param {String} row.opstina_ime_lat
  * @param {String} row.primary_key
  */
-function csvRecordToDocument(row) {
+function streetRecordToDocument(row) {
 	return {
 		title: row.ulica_ime_lat,
 		settlement: row.naselje_ime_lat,
@@ -39,27 +31,36 @@ function csvRecordToDocument(row) {
 	};
 }
 
-fs.createReadStream(CSV_FILE).pipe(parse({
-	delimiter: ',',
+const records = parse(readFileSync(CSV_FILE), {
 	columns: true
-}, function (err, records) {
-	if (err) {
-		console.warn(err);
-	} else {
-		const documents = records.map(csvRecordToDocument);
+});
 
-		mongoClient
-			.connect()
-			.then(() => {
-				mongoClient
-					.db('addresses')
-					.collection('streets')
-					.insertMany(documents)
-					.then((result) => {
-						console.log(`${result.insertedCount} documents were inserted`);
+const documents = records.map(streetRecordToDocument);
 
-						mongoClient.close();
-					});
-			});
+const client = new MongoClient(process.env.MONGODB_DSN, {
+	serverApi: {
+		version: ServerApiVersion.v1,
+		strict: true,
+		deprecationErrors: true,
 	}
-}));
+});
+
+async function run() {
+	try {
+		await client.connect();
+		const streetCollection = client.db('addresses').collection('streets');
+		
+		// Reset
+		const deleteResult = await streetCollection.deleteMany();
+		console.log("Deleted " + deleteResult.deletedCount + " documents");
+
+		// Insert fresh
+		const insertManyResult = await streetCollection.insertMany(documents);
+		console.log(`${insertManyResult.insertedCount} documents were inserted`);
+	} finally {
+		// Ensures that the client will close when you finish/error
+		await client.close(true);
+	}
+}
+
+run().catch(console.dir);
